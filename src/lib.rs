@@ -6,14 +6,17 @@ extern crate serde_json;
 
 use reqwest::{Client, header::{Accept, qitem}, mime::Mime};
 
-#[derive(Serialize, Deserialize)]
+#[cfg(test)]
+mod tests;
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Webfinger {
     subject: String,
     aliases: Vec<String>,
     links: Vec<Link>
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Link {
     rel: String,
     href: String,
@@ -21,15 +24,17 @@ pub struct Link {
     mime_type: Option<String>
 }
 
+#[derive(Debug, PartialEq)]
 pub enum WebfingerError {
     HttpError,
     ParseError,
     JsonError
 }
 
-pub fn url_for_acct(acct: String) -> Result<String, WebfingerError> {
+pub fn url_for_acct<T: Into<String>>(acct: T) -> Result<String, WebfingerError> {
+    let acct = acct.into();
     acct.split("@")
-        .last()
+        .nth(1)
         .ok_or(WebfingerError::ParseError)
         .map(|instance| format!("https://{}/.well-known/webfinger?resource=acct:{}", instance, acct))
 }
@@ -45,6 +50,7 @@ pub fn resolve(acct: String) -> Result<Webfinger, WebfingerError> {
         .and_then(|res| serde_json::from_str(&res[..]).map_err(|_| WebfingerError::JsonError))
 }
 
+#[derive(Debug, PartialEq)]
 pub enum ResolverError {
     InvalidResource,
     WrongInstance,
@@ -55,7 +61,8 @@ pub trait Resolver<R> {
     fn instance_domain<'a>() -> &'a str;
     fn find(acct: String, resource_repo: R) -> Result<Webfinger, ResolverError>;
 
-    fn endpoint(resource: String, resource_repo: R) -> Result<Webfinger, ResolverError> {
+    fn endpoint<T: Into<String>>(resource: T, resource_repo: R) -> Result<Webfinger, ResolverError> {
+        let resource = resource.into();
         let mut parsed_query = resource.splitn(2, ":");
         parsed_query.next()
             .ok_or(ResolverError::InvalidResource)
