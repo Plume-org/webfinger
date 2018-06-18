@@ -2,6 +2,12 @@
 authors = ["Baptiste Gelez <baptiste@gelez.xyz>"]
 name = "webfinger"
 version = "0.1.0"
+description = "A crate to help you fetch and serve WebFinger resources"
+repository = "https://github.com/BaptisteGelez/webfinger"
+readme = "README.md"
+keywords = ["webfinger"]
+categories = ["web-programming"]
+license = "GPL-3.0"
 [dependencies]
 reqwest = "0.8"
 serde = "1.0"
