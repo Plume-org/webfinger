@@ -76,7 +76,7 @@ pub fn url_for_acct<T: Into<String>>(acct: T) -> Result<String, WebfingerError> 
 }
 
 /// Fetches a WebFinger resource, identified by the `acct` parameter, an `acct:` URI.
-pub fn resolve(acct: String) -> Result<Webfinger, WebfingerError> {
+pub fn resolve<T: Into<String>>(acct: T) -> Result<Webfinger, WebfingerError> {
     let url = url_for_acct(acct)?;
     Client::new()
         .get(&url[..])
