@@ -1,3 +1,7 @@
+//! A crate to help you fetch and serve WebFinger resources.
+//! 
+//! Use [`resolve`] to fetch remote resources, and [`Resolver`] to serve your own resources.
+
 extern crate reqwest;
 extern crate serde;
 #[macro_use]
@@ -9,28 +13,60 @@ use reqwest::{Client, header::{Accept, qitem}, mime::Mime};
 #[cfg(test)]
 mod tests;
 
+/// WebFinger result that may serialized or deserialized to JSON
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Webfinger {
-    subject: String,
-    aliases: Vec<String>,
-    links: Vec<Link>
+    /// The subject of this WebFinger result.
+    /// 
+    /// It is an `acct:` URI
+    pub subject: String,
+
+    /// A list of aliases for this WebFinger result.
+    pub aliases: Vec<String>,
+
+    /// Links to places where you may find more information about this resource.
+    pub links: Vec<Link>
 }
 
+/// Structure to represent a WebFinger link
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Link {
-    rel: String,
-    href: String,
+    /// Tells what this link represents
+    pub rel: String,
+
+    /// The actual URL of the link
+    pub href: String,
+
+    /// The mime-type of this link.
+    /// 
+    /// If you fetch this URL, you may want to use this value for the Accept header of your HTTP
+    /// request.
     #[serde(rename="type")]
-    mime_type: Option<String>
+    pub mime_type: Option<String>
 }
 
+/// An error that occured while fetching a WebFinger resource.
 #[derive(Debug, PartialEq)]
 pub enum WebfingerError {
+    /// The error came from the HTTP client.
     HttpError,
+
+    /// The requested resource couldn't be parsed, and thus couldn't be fetched
     ParseError,
+
+    /// The received JSON couldn't be parsed into a valid [`Webfinger`] struct.
     JsonError
 }
 
+/// Computes the URL to fetch for an `acct:` URI.
+/// 
+/// # Example
+/// 
+/// ```rust
+/// use webfinger::url_for_acct;
+/// 
+/// assert_eq!(url_for_acct("test@example.org"), Ok(String::from("https://example.org/.well-known/webfinger?resource=acct:test@example.org")));
+/// ```
 pub fn url_for_acct<T: Into<String>>(acct: T) -> Result<String, WebfingerError> {
     let acct = acct.into();
     acct.split("@")
@@ -39,6 +75,7 @@ pub fn url_for_acct<T: Into<String>>(acct: T) -> Result<String, WebfingerError> 
         .map(|instance| format!("https://{}/.well-known/webfinger?resource=acct:{}", instance, acct))
 }
 
+/// Fetches a WebFinger resource, identified by the `acct` parameter, an `acct:` URI.
 pub fn resolve(acct: String) -> Result<Webfinger, WebfingerError> {
     let url = url_for_acct(acct)?;
     Client::new()
@@ -50,17 +87,36 @@ pub fn resolve(acct: String) -> Result<Webfinger, WebfingerError> {
         .and_then(|res| serde_json::from_str(&res[..]).map_err(|_| WebfingerError::JsonError))
 }
 
+/// An error that occured while handling an incoming WebFinger request.
 #[derive(Debug, PartialEq)]
 pub enum ResolverError {
+    /// The requested resource was not correctly formatted
     InvalidResource,
+
+    /// The website of the resource is not the current one.
     WrongInstance,
+
+    /// The requested resource was not found.
     NotFound
 }
 
+/// A trait to easily generate a WebFinger endpoint for any resource repository.
+/// 
+/// The `R` type is your resource repository (a database for instance) that will be passed to the
+/// [`find`](Resolver::find) and [`endpoint`](Resolver::endpoint) functions.
 pub trait Resolver<R> {
+    /// Returns the domain name of the current instance.
     fn instance_domain<'a>() -> &'a str;
+
+    /// Tries to find a resource, `acct`, in the repository `resource_repo`.
+    /// 
+    /// `acct` is not a complete `acct:` URI, it only contains the identifier of the requested resource
+    /// (e.g. `test` for `acct:test@example.org`)
+    /// 
+    /// If the resource couldn't be found, you may probably want to return a [`ResolverError::NotFound`].
     fn find(acct: String, resource_repo: R) -> Result<Webfinger, ResolverError>;
 
+    /// Returns a WebFinger result for a requested resource.
     fn endpoint<T: Into<String>>(resource: T, resource_repo: R) -> Result<Webfinger, ResolverError> {
         let resource = resource.into();
         let mut parsed_query = resource.splitn(2, ":");
