@@ -67,17 +67,23 @@ pub enum WebfingerError {
 /// 
 /// assert_eq!(url_for_acct("test@example.org"), Ok(String::from("https://example.org/.well-known/webfinger?resource=acct:test@example.org")));
 /// ```
-pub fn url_for_acct<T: Into<String>>(acct: T) -> Result<String, WebfingerError> {
+pub fn url_for_acct<T: Into<String>>(acct: T, with_https: bool) -> Result<String, WebfingerError> {
     let acct = acct.into();
+    let scheme = if with_https {
+        "https"
+    } else {
+        "http"
+    };
+
     acct.split("@")
         .nth(1)
         .ok_or(WebfingerError::ParseError)
-        .map(|instance| format!("https://{}/.well-known/webfinger?resource=acct:{}", instance, acct))
+        .map(|instance| format!("{}://{}/.well-known/webfinger?resource=acct:{}", scheme, instance, acct))
 }
 
 /// Fetches a WebFinger resource, identified by the `acct` parameter, an `acct:` URI.
-pub fn resolve<T: Into<String>>(acct: T) -> Result<Webfinger, WebfingerError> {
-    let url = url_for_acct(acct)?;
+pub fn resolve<T: Into<String>>(acct: T, with_https: bool) -> Result<Webfinger, WebfingerError> {
+    let url = url_for_acct(acct, with_https)?;
     Client::new()
         .get(&url[..])
         .header(Accept(vec![qitem("application/jrd+json".parse::<Mime>().unwrap())]))
