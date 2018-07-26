@@ -1,7 +1,7 @@
 [package]
 authors = ["Baptiste Gelez <baptiste@gelez.xyz>"]
 name = "webfinger"
-version = "0.2.0"
+version = "0.3.0"
 description = "A crate to help you fetch and serve WebFinger resources"
 repository = "https://github.com/BaptisteGelez/webfinger"
 readme = "README.md"
