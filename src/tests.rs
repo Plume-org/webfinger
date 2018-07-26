@@ -3,8 +3,8 @@ use super::*;
 
 #[test]
 fn test_url_for_acct() {
-    assert_eq!(url_for_acct("test@example.org"), Ok(String::from("https://example.org/.well-known/webfinger?resource=acct:test@example.org")));
-    assert_eq!(url_for_acct("test"), Err(WebfingerError::ParseError))
+    assert_eq!(url_for_acct("test@example.org", true), Ok(String::from("https://example.org/.well-known/webfinger?resource=acct:test@example.org")));
+    assert_eq!(url_for_acct("test", true), Err(WebfingerError::ParseError))
 }
 
 #[test]
@@ -40,17 +40,20 @@ fn test_webfinger_parsing() {
         Link {
             rel: "http://webfinger.net/rel/profile-page".to_string(),
             mime_type: None,
-            href: "https://example.org/@test/".to_string()
+            href: Some("https://example.org/@test/".to_string()),
+            template: None
         },
         Link {
             rel: "http://schemas.google.com/g/2010#updates-from".to_string(),
             mime_type: Some("application/atom+xml".to_string()),
-            href: "https://example.org/@test/feed.atom".to_string()
+            href: Some("https://example.org/@test/feed.atom".to_string()),
+            template: None
         },
         Link {
             rel: "self".to_string(),
             mime_type: Some("application/activity+json".to_string()),
-            href: "https://example.org/@test/".to_string()
+            href: Some("https://example.org/@test/".to_string()),
+            template: None
         }
     ], webfinger.links);
 }
@@ -72,7 +75,8 @@ impl Resolver<&'static str> for MyResolver {
                     Link {
                         rel: "http://webfinger.net/rel/profile-page".to_string(),
                         mime_type: None,
-                        href: format!("https://instance.tld/@{}/", acct)
+                        href: Some(format!("https://instance.tld/@{}/", acct)),
+                        template: None
                     }
                 ]
             })

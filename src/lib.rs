@@ -35,7 +35,10 @@ pub struct Link {
     pub rel: String,
 
     /// The actual URL of the link
-    pub href: String,
+    pub href: Option<String>,
+
+    /// The Link may also contain an URL template, instead of an actual URL
+    pub template: Option<String>,
 
     /// The mime-type of this link.
     /// 
@@ -65,7 +68,7 @@ pub enum WebfingerError {
 /// ```rust
 /// use webfinger::url_for_acct;
 /// 
-/// assert_eq!(url_for_acct("test@example.org"), Ok(String::from("https://example.org/.well-known/webfinger?resource=acct:test@example.org")));
+/// assert_eq!(url_for_acct("test@example.org", true), Ok(String::from("https://example.org/.well-known/webfinger?resource=acct:test@example.org")));
 /// ```
 pub fn url_for_acct<T: Into<String>>(acct: T, with_https: bool) -> Result<String, WebfingerError> {
     let acct = acct.into();
