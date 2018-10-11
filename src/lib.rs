@@ -8,7 +8,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
-use reqwest::{Client, header::{Accept, qitem}, mime::Mime};
+use reqwest::{header::ACCEPT, Client};
 
 #[cfg(test)]
 mod tests;
@@ -86,7 +86,7 @@ pub fn resolve<T: Into<String>>(acct: T, with_https: bool) -> Result<Webfinger, 
     let url = url_for_acct(acct, with_https)?;
     Client::new()
         .get(&url[..])
-        .header(Accept(vec![qitem("application/jrd+json".parse::<Mime>().unwrap())]))
+        .header(ACCEPT, "application/jrd+json")
         .send()
         .map_err(|_| WebfingerError::HttpError)
         .and_then(|mut r| r.text().map_err(|_| WebfingerError::HttpError))

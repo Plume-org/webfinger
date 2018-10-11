@@ -9,7 +9,7 @@ keywords = ["webfinger"]
 categories = ["web-programming"]
 license = "GPL-3.0"
 [dependencies]
-reqwest = "0.8"
+reqwest = "0.9"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
