@@ -89,7 +89,7 @@ pub fn resolve<T: Into<String>>(acct: T, with_https: bool) -> Result<Webfinger, 
     let url = url_for_acct(acct, with_https)?;
     Client::new()
         .get(&url[..])
-        .header(ACCEPT, "application/jrd+json")
+        .header(ACCEPT, "application/jrd+json, application/json")
         .send()
         .map_err(|_| WebfingerError::HttpError)
         .and_then(|mut r| r.text().map_err(|_| WebfingerError::HttpError))
