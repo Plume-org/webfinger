@@ -1,4 +1,4 @@
-# WebFinger
+# WebFinger ![Crates.io](https://img.shields.io/crates/v/webfinger.svg) ![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/Plume-org/webfinger.svg) ![Codecov](https://img.shields.io/codecov/c/github/Plume-org/webfinger.svg) [![Build Status](https://travis-ci.org/Plume-org/webfinger.svg?branch=master)](https://travis-ci.org/Plume-org/webfinger)
 
 A crate to help you fetch and serve WebFinger resources.
 
