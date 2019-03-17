@@ -1,15 +1,20 @@
 [package]
-authors = ["Baptiste Gelez <baptiste@gelez.xyz>"]
+authors = ["Ana Gelez <ana@gelez.xyz>"]
 name = "webfinger"
 version = "0.3.1"
 description = "A crate to help you fetch and serve WebFinger resources"
-repository = "https://github.com/BaptisteGelez/webfinger"
+repository = "https://github.com/Plume-org/webfinger"
 readme = "README.md"
-keywords = ["webfinger"]
+keywords = ["webfinger", "federation", "decentralization"]
 categories = ["web-programming"]
 license = "GPL-3.0"
+edition = "2018"
+
 [dependencies]
 reqwest = "0.9"
 serde = "1.0"
 serde_derive = "1.0"
+
+[dev-dependencies]
 serde_json = "1.0"
+mockito = "0.16"

@@ -2,11 +2,7 @@
 //! 
 //! Use [`resolve`] to fetch remote resources, and [`Resolver`] to serve your own resources.
 
-extern crate reqwest;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
+#[macro_use] extern crate serde_derive;
 
 use reqwest::{header::ACCEPT, Client};
 
@@ -61,16 +57,47 @@ pub enum WebfingerError {
     JsonError
 }
 
-/// Computes the URL to fetch for an `acct:` URI.
-/// 
-/// # Example
-/// 
-/// ```rust
-/// use webfinger::url_for_acct;
-/// 
-/// assert_eq!(url_for_acct("test@example.org", true), Ok(String::from("https://example.org/.well-known/webfinger?resource=acct:test@example.org")));
-/// ```
-pub fn url_for_acct<T: Into<String>>(acct: T, with_https: bool) -> Result<String, WebfingerError> {
+
+/// A prefix for a resource, either `acct:`, `group:` or some custom type.
+#[derive(Debug, PartialEq)]
+pub enum Prefix {
+    /// `acct:` resource
+    Acct,
+    /// `group:` resource
+    Group,
+    /// Another type of resource
+    Custom(String),
+}
+
+impl From<&str> for Prefix {
+    fn from(s: &str) -> Prefix {
+        match s.to_lowercase().as_ref() {
+            "acct" => Prefix::Acct,
+            "group" => Prefix::Group,
+            x => Prefix::Custom(x.into()),
+        }
+    }
+}
+
+impl Into<String> for Prefix {
+    fn into(self) -> String {
+        match self {
+            Prefix::Acct => "acct".into(),
+            Prefix::Group => "group".into(),
+            Prefix::Custom(x) => x.clone(),
+        }
+    }
+}
+
+/// Computes the URL to fetch for a given resource.
+///
+/// # Parameters
+///
+/// - `prefix`: the resource prefix
+/// - `acct`: the identifier of the resource, for instance: `someone@example.org`
+/// - `with_https`: indicates wether the URL should be on HTTPS or HTTP
+///
+pub fn url_for(prefix: Prefix, acct: impl Into<String>, with_https: bool) -> Result<String, WebfingerError> {
     let acct = acct.into();
     let scheme = if with_https {
         "https"
@@ -78,22 +105,41 @@ pub fn url_for_acct<T: Into<String>>(acct: T, with_https: bool) -> Result<String
         "http"
     };
 
+    let prefix: String = prefix.into();
     acct.split("@")
         .nth(1)
         .ok_or(WebfingerError::ParseError)
-        .map(|instance| format!("{}://{}/.well-known/webfinger?resource=acct:{}", scheme, instance, acct))
+        .map(|instance| format!("{}://{}/.well-known/webfinger?resource={}:{}", scheme, instance, prefix, acct))
 }
 
-/// Fetches a WebFinger resource, identified by the `acct` parameter, an `acct:` URI.
-pub fn resolve<T: Into<String>>(acct: T, with_https: bool) -> Result<Webfinger, WebfingerError> {
-    let url = url_for_acct(acct, with_https)?;
+/// Fetches a WebFinger resource, identified by the `acct` parameter, a Webfinger URI.
+pub fn resolve_with_prefix(prefix: Prefix, acct: impl Into<String>, with_https: bool) -> Result<Webfinger, WebfingerError> {
+    let url = url_for(prefix, acct, with_https)?;
     Client::new()
         .get(&url[..])
         .header(ACCEPT, "application/jrd+json")
         .send()
         .map_err(|_| WebfingerError::HttpError)
-        .and_then(|mut r| r.text().map_err(|_| WebfingerError::HttpError))
-        .and_then(|res| serde_json::from_str(&res[..]).map_err(|_| WebfingerError::JsonError))
+        .and_then(|mut r| r.json().map_err(|_| WebfingerError::JsonError))
+}
+
+/// Fetches a Webfinger resource.
+///
+/// If the resource doesn't have a prefix, `acct:` will be used.
+pub fn resolve(acct: impl Into<String>, with_https: bool) -> Result<Webfinger, WebfingerError> {
+    let acct = acct.into();
+    let mut parsed = acct.splitn(2, ':');
+    let first = parsed.next().ok_or(WebfingerError::ParseError)?;
+
+    if first.contains('@') { // This : was a port number, not a prefix
+        resolve_with_prefix(Prefix::Acct, acct, with_https)
+    } else {
+        if let Some(other) = parsed.next() {
+            resolve_with_prefix(Prefix::from(first), other, with_https)
+        } else { // fallback to acct:
+            resolve_with_prefix(Prefix::Acct, first, with_https)
+        }
+    }
 }
 
 /// An error that occured while handling an incoming WebFinger request.
@@ -103,7 +149,7 @@ pub enum ResolverError {
     InvalidResource,
 
     /// The website of the resource is not the current one.
-    WrongInstance,
+    WrongDomain,
 
     /// The requested resource was not found.
     NotFound
@@ -123,36 +169,22 @@ pub trait Resolver<R> {
     /// (e.g. `test` for `acct:test@example.org`)
     /// 
     /// If the resource couldn't be found, you may probably want to return a [`ResolverError::NotFound`].
-    fn find(acct: String, resource_repo: R) -> Result<Webfinger, ResolverError>;
+    fn find(prefix: Prefix, acct: String, resource_repo: R) -> Result<Webfinger, ResolverError>;
 
     /// Returns a WebFinger result for a requested resource.
-    fn endpoint<T: Into<String>>(resource: T, resource_repo: R) -> Result<Webfinger, ResolverError> {
+    fn endpoint(resource: impl Into<String>, resource_repo: R) -> Result<Webfinger, ResolverError> {
         let resource = resource.into();
-        let mut parsed_query = resource.splitn(2, ":");
-        parsed_query.next()
-            .ok_or(ResolverError::InvalidResource)
-            .and_then(|res_type| {
-                if res_type == "acct" {
-                    parsed_query.next().ok_or(ResolverError::InvalidResource)
-                } else {
-                    Err(ResolverError::InvalidResource)
-                }
-            })
-            .and_then(|res| {
-                let mut parsed_res = res.split("@");
-                parsed_res.next()
-                    .ok_or(ResolverError::InvalidResource)
-                    .and_then(|user| {
-                        parsed_res.next()
-                            .ok_or(ResolverError::InvalidResource)
-                            .and_then(|res_domain| {
-                                if res_domain == Self::instance_domain() {
-                                    Self::find(user.to_string(), resource_repo)
-                                } else {
-                                    Err(ResolverError::WrongInstance)
-                                }
-                            })
-                    })
-            })
+        let mut parsed_query = resource.splitn(2, ':');
+        let res_prefix = Prefix::from(parsed_query.next().ok_or(ResolverError::InvalidResource)?);
+        let res = parsed_query.next().ok_or(ResolverError::InvalidResource)?;
+
+        let mut parsed_res = res.splitn(2, '@');
+        let user = parsed_res.next().ok_or(ResolverError::InvalidResource)?;
+        let domain = parsed_res.next().ok_or(ResolverError::InvalidResource)?;
+        if domain == Self::instance_domain() {
+            Self::find(res_prefix, user.to_string(), resource_repo)
+        } else {
+            Err(ResolverError::WrongDomain)
+        }
     }
 }
