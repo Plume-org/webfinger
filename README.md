@@ -7,12 +7,10 @@ A crate to help you fetch and serve WebFinger resources.
 Fetching a resource:
 
 ```rust
-extern crate webfinger;
-
 use webfinger::resolve;
 
 fn main() {
-    let res = resolve("acct:test@example.org").expect("Error while fetching resource");
+    let res = resolve("acct:test@example.org", true).expect("Error while fetching resource");
 
     println!("Places to get more informations about {}:", res.subject);
     for link in res.links.into_iter() {
@@ -24,8 +22,6 @@ fn main() {
 Serving resources:
 
 ```rust
-extern crate webfinger;
-
 use webfinger::Resolver;
 
 pub struct MyResolver;
@@ -55,6 +51,6 @@ impl Resolver<DatabaseConnection> for MyResolver {
 }
 
 fn main() {
-    // Start a web server and map /.well-known/webfinger to a function calling MyResolver::find…
+    // Start a web server and map /.well-known/webfinger to a function calling MyResolver::endpoint
 }
 ```
