@@ -31,16 +31,18 @@ pub struct Link {
     pub rel: String,
 
     /// The actual URL of the link
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub href: Option<String>,
 
     /// The Link may also contain an URL template, instead of an actual URL
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub template: Option<String>,
 
     /// The mime-type of this link.
     /// 
     /// If you fetch this URL, you may want to use this value for the Accept header of your HTTP
     /// request.
-    #[serde(rename="type")]
+    #[serde(rename="type", skip_serializing_if = "Option::is_none")]
     pub mime_type: Option<String>
 }
 
