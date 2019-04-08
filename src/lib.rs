@@ -1,8 +1,9 @@
 //! A crate to help you fetch and serve WebFinger resources.
-//! 
+//!
 //! Use [`resolve`] to fetch remote resources, and [`Resolver`] to serve your own resources.
 
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_derive;
 
 use reqwest::{header::ACCEPT, Client};
 
@@ -13,7 +14,7 @@ mod tests;
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Webfinger {
     /// The subject of this WebFinger result.
-    /// 
+    ///
     /// It is an `acct:` URI
     pub subject: String,
 
@@ -21,7 +22,7 @@ pub struct Webfinger {
     pub aliases: Vec<String>,
 
     /// Links to places where you may find more information about this resource.
-    pub links: Vec<Link>
+    pub links: Vec<Link>,
 }
 
 /// Structure to represent a WebFinger link
@@ -31,17 +32,19 @@ pub struct Link {
     pub rel: String,
 
     /// The actual URL of the link
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub href: Option<String>,
 
     /// The Link may also contain an URL template, instead of an actual URL
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub template: Option<String>,
 
     /// The mime-type of this link.
-    /// 
+    ///
     /// If you fetch this URL, you may want to use this value for the Accept header of your HTTP
     /// request.
-    #[serde(rename="type")]
-    pub mime_type: Option<String>
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub mime_type: Option<String>,
 }
 
 /// An error that occured while fetching a WebFinger resource.
@@ -54,9 +57,8 @@ pub enum WebfingerError {
     ParseError,
 
     /// The received JSON couldn't be parsed into a valid [`Webfinger`] struct.
-    JsonError
+    JsonError,
 }
-
 
 /// A prefix for a resource, either `acct:`, `group:` or some custom type.
 #[derive(Debug, PartialEq)]
@@ -97,23 +99,32 @@ impl Into<String> for Prefix {
 /// - `acct`: the identifier of the resource, for instance: `someone@example.org`
 /// - `with_https`: indicates wether the URL should be on HTTPS or HTTP
 ///
-pub fn url_for(prefix: Prefix, acct: impl Into<String>, with_https: bool) -> Result<String, WebfingerError> {
+pub fn url_for(
+    prefix: Prefix,
+    acct: impl Into<String>,
+    with_https: bool,
+) -> Result<String, WebfingerError> {
     let acct = acct.into();
-    let scheme = if with_https {
-        "https"
-    } else {
-        "http"
-    };
+    let scheme = if with_https { "https" } else { "http" };
 
     let prefix: String = prefix.into();
     acct.split("@")
         .nth(1)
         .ok_or(WebfingerError::ParseError)
-        .map(|instance| format!("{}://{}/.well-known/webfinger?resource={}:{}", scheme, instance, prefix, acct))
+        .map(|instance| {
+            format!(
+                "{}://{}/.well-known/webfinger?resource={}:{}",
+                scheme, instance, prefix, acct
+            )
+        })
 }
 
 /// Fetches a WebFinger resource, identified by the `acct` parameter, a Webfinger URI.
-pub fn resolve_with_prefix(prefix: Prefix, acct: impl Into<String>, with_https: bool) -> Result<Webfinger, WebfingerError> {
+pub fn resolve_with_prefix(
+    prefix: Prefix,
+    acct: impl Into<String>,
+    with_https: bool,
+) -> Result<Webfinger, WebfingerError> {
     let url = url_for(prefix, acct, with_https)?;
     Client::new()
         .get(&url[..])
@@ -131,12 +142,14 @@ pub fn resolve(acct: impl Into<String>, with_https: bool) -> Result<Webfinger, W
     let mut parsed = acct.splitn(2, ':');
     let first = parsed.next().ok_or(WebfingerError::ParseError)?;
 
-    if first.contains('@') { // This : was a port number, not a prefix
+    if first.contains('@') {
+        // This : was a port number, not a prefix
         resolve_with_prefix(Prefix::Acct, acct, with_https)
     } else {
         if let Some(other) = parsed.next() {
             resolve_with_prefix(Prefix::from(first), other, with_https)
-        } else { // fallback to acct:
+        } else {
+            // fallback to acct:
             resolve_with_prefix(Prefix::Acct, first, with_https)
         }
     }
@@ -152,11 +165,11 @@ pub enum ResolverError {
     WrongDomain,
 
     /// The requested resource was not found.
-    NotFound
+    NotFound,
 }
 
 /// A trait to easily generate a WebFinger endpoint for any resource repository.
-/// 
+///
 /// The `R` type is your resource repository (a database for instance) that will be passed to the
 /// [`find`](Resolver::find) and [`endpoint`](Resolver::endpoint) functions.
 pub trait Resolver<R> {
@@ -164,10 +177,10 @@ pub trait Resolver<R> {
     fn instance_domain<'a>() -> &'a str;
 
     /// Tries to find a resource, `acct`, in the repository `resource_repo`.
-    /// 
+    ///
     /// `acct` is not a complete `acct:` URI, it only contains the identifier of the requested resource
     /// (e.g. `test` for `acct:test@example.org`)
-    /// 
+    ///
     /// If the resource couldn't be found, you may probably want to return a [`ResolverError::NotFound`].
     fn find(prefix: Prefix, acct: String, resource_repo: R) -> Result<Webfinger, ResolverError>;
 
