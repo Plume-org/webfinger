@@ -19,6 +19,7 @@ pub struct Webfinger {
     pub subject: String,
 
     /// A list of aliases for this WebFinger result.
+    #[serde(default)]
     pub aliases: Vec<String>,
 
     /// Links to places where you may find more information about this resource.

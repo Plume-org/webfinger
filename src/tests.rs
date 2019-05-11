@@ -73,6 +73,24 @@ fn test_resolve() {
 }
 
 #[test]
+fn test_no_aliases() {
+    let json = r#"
+    {
+        "subject": "acct:blog@wedistribute.org",
+        "links": [
+            {
+                "rel": "self",
+                "type": "application\/activity+json",
+                "href": "https:\/\/wedistribute.org\/wp-json\/pterotype\/v1\/actor\/-blog"
+            }
+        ]
+    }
+    "#;
+
+    assert!(serde_json::from_str::<Webfinger>(json).is_ok());
+}
+
+#[test]
 fn test_webfinger_parsing() {
     let valid = r#"
     {
