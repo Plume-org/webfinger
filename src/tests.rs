@@ -148,11 +148,12 @@ pub struct MyResolver;
 
 // Only one user, represented by a String
 impl Resolver<&'static str> for MyResolver {
-    fn instance_domain<'a>() -> &'a str {
+    fn instance_domain<'a>(&self) -> &'a str {
         "instance.tld"
     }
 
     fn find(
+        &self,
         prefix: Prefix,
         acct: String,
         resource_repo: &'static str,
@@ -176,29 +177,30 @@ impl Resolver<&'static str> for MyResolver {
 
 #[test]
 fn test_my_resolver() {
-    assert!(MyResolver::endpoint("acct:admin@instance.tld", "admin").is_ok());
+    let resolver = MyResolver;
+    assert!(resolver.endpoint("acct:admin@instance.tld", "admin").is_ok());
     assert_eq!(
-        MyResolver::endpoint("acct:test@instance.tld", "admin"),
+        resolver.endpoint("acct:test@instance.tld", "admin"),
         Err(ResolverError::NotFound)
     );
     assert_eq!(
-        MyResolver::endpoint("acct:admin@oops.ie", "admin"),
+        resolver.endpoint("acct:admin@oops.ie", "admin"),
         Err(ResolverError::WrongDomain)
     );
     assert_eq!(
-        MyResolver::endpoint("admin@instance.tld", "admin"),
+        resolver.endpoint("admin@instance.tld", "admin"),
         Err(ResolverError::InvalidResource)
     );
     assert_eq!(
-        MyResolver::endpoint("admin", "admin"),
+        resolver.endpoint("admin", "admin"),
         Err(ResolverError::InvalidResource)
     );
     assert_eq!(
-        MyResolver::endpoint("acct:admin", "admin"),
+        resolver.endpoint("acct:admin", "admin"),
         Err(ResolverError::InvalidResource)
     );
     assert_eq!(
-        MyResolver::endpoint("group:admin@instance.tld", "admin"),
+        resolver.endpoint("group:admin@instance.tld", "admin"),
         Err(ResolverError::NotFound)
     );
 }
