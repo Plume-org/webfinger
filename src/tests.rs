@@ -1,5 +1,6 @@
 use super::*;
 use serde_json;
+use tokio::runtime::Runtime;
 
 #[test]
 fn test_url_for() {
@@ -35,6 +36,7 @@ fn test_url_for() {
 
 #[test]
 fn test_resolve() {
+    let mut r = Runtime::new().unwrap();
     let m = mockito::mock("GET", mockito::Matcher::Any)
         .with_body(
             r#"
@@ -66,10 +68,12 @@ fn test_resolve() {
 
     let url = format!("test@{}", mockito::server_url()).replace("http://", "");
     println!("{}", url);
-    let res = resolve(url, false).unwrap();
-    assert_eq!(res.subject, String::from("acct:test@example.org"));
+    r.block_on(async {
+        let res = resolve(url, false).await.unwrap();
+        assert_eq!(res.subject, String::from("acct:test@example.org"));
 
-    m.assert();
+        m.assert();
+    });
 }
 
 #[test]

@@ -11,9 +11,10 @@ license = "GPL-3.0"
 edition = "2018"
 
 [dependencies]
-reqwest = "0.9"
+reqwest = { version = "0.10", features = [ "json" ] }
 serde = { version = "1.0", features = [ "derive" ] }
 
 [dev-dependencies]
 serde_json = "1.0"
-mockito = "0.16"
+mockito = "0.22"
+tokio = "0.2"

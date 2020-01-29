@@ -119,7 +119,7 @@ pub fn url_for(
 }
 
 /// Fetches a WebFinger resource, identified by the `acct` parameter, a Webfinger URI.
-pub fn resolve_with_prefix(
+pub async fn resolve_with_prefix(
     prefix: Prefix,
     acct: impl Into<String>,
     with_https: bool,
@@ -129,27 +129,30 @@ pub fn resolve_with_prefix(
         .get(&url[..])
         .header(ACCEPT, "application/jrd+json, application/json")
         .send()
-        .map_err(|_| WebfingerError::HttpError)
-        .and_then(|mut r| r.json().map_err(|_| WebfingerError::JsonError))
+        .await
+        .map_err(|_| WebfingerError::HttpError)?
+        .json()
+        .await
+        .map_err(|_| WebfingerError::JsonError)
 }
 
 /// Fetches a Webfinger resource.
 ///
 /// If the resource doesn't have a prefix, `acct:` will be used.
-pub fn resolve(acct: impl Into<String>, with_https: bool) -> Result<Webfinger, WebfingerError> {
+pub async fn resolve(acct: impl Into<String>, with_https: bool) -> Result<Webfinger, WebfingerError> {
     let acct = acct.into();
     let mut parsed = acct.splitn(2, ':');
     let first = parsed.next().ok_or(WebfingerError::ParseError)?;
 
     if first.contains('@') {
         // This : was a port number, not a prefix
-        resolve_with_prefix(Prefix::Acct, acct, with_https)
+        resolve_with_prefix(Prefix::Acct, acct, with_https).await
     } else {
         if let Some(other) = parsed.next() {
-            resolve_with_prefix(Prefix::from(first), other, with_https)
+            resolve_with_prefix(Prefix::from(first), other, with_https).await
         } else {
             // fallback to acct:
-            resolve_with_prefix(Prefix::Acct, first, with_https)
+            resolve_with_prefix(Prefix::Acct, first, with_https).await
         }
     }
 }
