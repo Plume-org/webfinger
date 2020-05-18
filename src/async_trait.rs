@@ -25,9 +25,9 @@ pub trait Resolver {
     ) -> Result<Webfinger, ResolverError>;
 
     /// Returns a WebFinger result for a requested resource.
-    async fn endpoint(
+    async fn endpoint<R: Into<String> + Send>(
         &self,
-        resource: impl Into<String> + Send,
+        resource: R,
         resource_repo: Self::Repo,
     ) -> Result<Webfinger, ResolverError> {
         let resource = resource.into();
