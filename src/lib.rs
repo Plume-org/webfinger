@@ -5,15 +5,13 @@
 use reqwest::{header::ACCEPT, Client};
 use serde::{Deserialize, Serialize};
 
+mod sync_trait;
+pub use crate::sync_trait::*;
+
 #[cfg(feature = "async")]
 mod async_trait;
 #[cfg(feature = "async")]
 pub use crate::async_trait::*;
-
-#[cfg(not(feature = "async"))]
-mod sync_trait;
-#[cfg(not(feature = "async"))]
-pub use crate::sync_trait::*;
 
 #[cfg(test)]
 mod tests;

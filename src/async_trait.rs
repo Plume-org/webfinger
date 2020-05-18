@@ -6,7 +6,7 @@ use async_trait::async_trait;
 /// The `R` type is your resource repository (a database for instance) that will be passed to the
 /// [`find`](Resolver::find) and [`endpoint`](Resolver::endpoint) functions.
 #[async_trait]
-pub trait Resolver {
+pub trait AsyncResolver {
     type Repo: Send;
     /// Returns the domain name of the current instance.
     async fn instance_domain<'a>(&self) -> &'a str;
