@@ -25,4 +25,7 @@ addons:
       - zlib1g-dev
       - libiberty-dev
 
-script: cargo test && ./coverage.sh
+script:
+  - cargo test
+  - cargo test --features async
+  - ./coverage.sh
