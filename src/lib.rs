@@ -5,13 +5,13 @@
 use reqwest::{header::ACCEPT, Client};
 use serde::{Deserialize, Serialize};
 
-mod sync_trait;
-pub use crate::sync_trait::*;
+mod resolver;
+pub use crate::resolver::*;
 
 #[cfg(feature = "async")]
-mod async_trait;
+mod async_resolver;
 #[cfg(feature = "async")]
-pub use crate::async_trait::*;
+pub use crate::async_resolver::*;
 
 #[cfg(test)]
 mod tests;
@@ -93,7 +93,7 @@ impl Into<String> for Prefix {
         match self {
             Prefix::Acct => "acct".into(),
             Prefix::Group => "group".into(),
-            Prefix::Custom(x) => x.clone(),
+            Prefix::Custom(x) => x,
         }
     }
 }
@@ -115,7 +115,7 @@ pub fn url_for(
     let scheme = if with_https { "https" } else { "http" };
 
     let prefix: String = prefix.into();
-    acct.split("@")
+    acct.split('@')
         .nth(1)
         .ok_or(WebfingerError::ParseError)
         .map(|instance| {
@@ -158,13 +158,11 @@ pub async fn resolve(
     if first.contains('@') {
         // This : was a port number, not a prefix
         resolve_with_prefix(Prefix::Acct, acct, with_https).await
+    } else if let Some(other) = parsed.next() {
+        resolve_with_prefix(Prefix::from(first), other, with_https).await
     } else {
-        if let Some(other) = parsed.next() {
-            resolve_with_prefix(Prefix::from(first), other, with_https).await
-        } else {
-            // fallback to acct:
-            resolve_with_prefix(Prefix::Acct, first, with_https).await
-        }
+        // fallback to acct:
+        resolve_with_prefix(Prefix::Acct, first, with_https).await
     }
 }
 
