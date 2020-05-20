@@ -1,5 +1,4 @@
 use super::*;
-use serde_json;
 use tokio::runtime::Runtime;
 
 #[test]
@@ -162,7 +161,43 @@ impl Resolver<&'static str> for MyResolver {
         acct: String,
         resource_repo: &'static str,
     ) -> Result<Webfinger, ResolverError> {
-        if acct == resource_repo.to_string() && prefix == Prefix::Acct {
+        if acct == resource_repo && prefix == Prefix::Acct {
+            Ok(Webfinger {
+                subject: acct.clone(),
+                aliases: vec![acct.clone()],
+                links: vec![Link {
+                    rel: "http://webfinger.net/rel/profile-page".to_string(),
+                    mime_type: None,
+                    href: Some(format!("https://instance.tld/@{}/", acct)),
+                    template: None,
+                }],
+            })
+        } else {
+            Err(ResolverError::NotFound)
+        }
+    }
+}
+
+#[cfg(feature = "async")]
+pub struct MyAsyncResolver;
+
+// Only one user, represented by a String
+#[cfg(feature = "async")]
+#[async_trait::async_trait]
+impl AsyncResolver for MyAsyncResolver {
+    type Repo = &'static str;
+
+    async fn instance_domain<'a>(&self) -> &'a str {
+        "instance.tld"
+    }
+
+    async fn find(
+        &self,
+        prefix: Prefix,
+        acct: String,
+        resource_repo: &'static str,
+    ) -> Result<Webfinger, ResolverError> {
+        if acct == resource_repo && prefix == Prefix::Acct {
             Ok(Webfinger {
                 subject: acct.clone(),
                 aliases: vec![acct.clone()],
@@ -182,7 +217,9 @@ impl Resolver<&'static str> for MyResolver {
 #[test]
 fn test_my_resolver() {
     let resolver = MyResolver;
-    assert!(resolver.endpoint("acct:admin@instance.tld", "admin").is_ok());
+    assert!(resolver
+        .endpoint("acct:admin@instance.tld", "admin")
+        .is_ok());
     assert_eq!(
         resolver.endpoint("acct:test@instance.tld", "admin"),
         Err(ResolverError::NotFound)
@@ -207,4 +244,53 @@ fn test_my_resolver() {
         resolver.endpoint("group:admin@instance.tld", "admin"),
         Err(ResolverError::NotFound)
     );
+}
+
+#[test]
+#[cfg(feature = "async")]
+fn test_my_async_resolver() {
+    let resolver = MyAsyncResolver;
+    let mut r = Runtime::new().unwrap();
+    r.block_on(async {
+        assert!(resolver
+            .endpoint("acct:admin@instance.tld", "admin")
+            .await
+            .is_ok());
+    });
+    r.block_on(async {
+        assert_eq!(
+            resolver.endpoint("acct:test@instance.tld", "admin").await,
+            Err(ResolverError::NotFound)
+        );
+    });
+    r.block_on(async {
+        assert_eq!(
+            resolver.endpoint("acct:admin@oops.ie", "admin").await,
+            Err(ResolverError::WrongDomain)
+        );
+    });
+    r.block_on(async {
+        assert_eq!(
+            resolver.endpoint("admin@instance.tld", "admin").await,
+            Err(ResolverError::InvalidResource)
+        );
+    });
+    r.block_on(async {
+        assert_eq!(
+            resolver.endpoint("admin", "admin").await,
+            Err(ResolverError::InvalidResource)
+        );
+    });
+    r.block_on(async {
+        assert_eq!(
+            resolver.endpoint("acct:admin", "admin").await,
+            Err(ResolverError::InvalidResource)
+        );
+    });
+    r.block_on(async {
+        assert_eq!(
+            resolver.endpoint("group:admin@instance.tld", "admin").await,
+            Err(ResolverError::NotFound)
+        );
+    });
 }

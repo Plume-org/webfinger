@@ -3,7 +3,15 @@
 //! Use [`resolve`] to fetch remote resources, and [`Resolver`] to serve your own resources.
 
 use reqwest::{header::ACCEPT, Client};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+
+mod resolver;
+pub use crate::resolver::*;
+
+#[cfg(feature = "async")]
+mod async_resolver;
+#[cfg(feature = "async")]
+pub use crate::async_resolver::*;
 
 #[cfg(test)]
 mod tests;
@@ -85,7 +93,7 @@ impl Into<String> for Prefix {
         match self {
             Prefix::Acct => "acct".into(),
             Prefix::Group => "group".into(),
-            Prefix::Custom(x) => x.clone(),
+            Prefix::Custom(x) => x,
         }
     }
 }
@@ -107,7 +115,7 @@ pub fn url_for(
     let scheme = if with_https { "https" } else { "http" };
 
     let prefix: String = prefix.into();
-    acct.split("@")
+    acct.split('@')
         .nth(1)
         .ok_or(WebfingerError::ParseError)
         .map(|instance| {
@@ -139,7 +147,10 @@ pub async fn resolve_with_prefix(
 /// Fetches a Webfinger resource.
 ///
 /// If the resource doesn't have a prefix, `acct:` will be used.
-pub async fn resolve(acct: impl Into<String>, with_https: bool) -> Result<Webfinger, WebfingerError> {
+pub async fn resolve(
+    acct: impl Into<String>,
+    with_https: bool,
+) -> Result<Webfinger, WebfingerError> {
     let acct = acct.into();
     let mut parsed = acct.splitn(2, ':');
     let first = parsed.next().ok_or(WebfingerError::ParseError)?;
@@ -147,13 +158,11 @@ pub async fn resolve(acct: impl Into<String>, with_https: bool) -> Result<Webfin
     if first.contains('@') {
         // This : was a port number, not a prefix
         resolve_with_prefix(Prefix::Acct, acct, with_https).await
+    } else if let Some(other) = parsed.next() {
+        resolve_with_prefix(Prefix::from(first), other, with_https).await
     } else {
-        if let Some(other) = parsed.next() {
-            resolve_with_prefix(Prefix::from(first), other, with_https).await
-        } else {
-            // fallback to acct:
-            resolve_with_prefix(Prefix::Acct, first, with_https).await
-        }
+        // fallback to acct:
+        resolve_with_prefix(Prefix::Acct, first, with_https).await
     }
 }
 
@@ -168,38 +177,4 @@ pub enum ResolverError {
 
     /// The requested resource was not found.
     NotFound,
-}
-
-/// A trait to easily generate a WebFinger endpoint for any resource repository.
-///
-/// The `R` type is your resource repository (a database for instance) that will be passed to the
-/// [`find`](Resolver::find) and [`endpoint`](Resolver::endpoint) functions.
-pub trait Resolver<R> {
-    /// Returns the domain name of the current instance.
-    fn instance_domain<'a>(&self) -> &'a str;
-
-    /// Tries to find a resource, `acct`, in the repository `resource_repo`.
-    ///
-    /// `acct` is not a complete `acct:` URI, it only contains the identifier of the requested resource
-    /// (e.g. `test` for `acct:test@example.org`)
-    ///
-    /// If the resource couldn't be found, you may probably want to return a [`ResolverError::NotFound`].
-    fn find(&self, prefix: Prefix, acct: String, resource_repo: R) -> Result<Webfinger, ResolverError>;
-
-    /// Returns a WebFinger result for a requested resource.
-    fn endpoint(&self, resource: impl Into<String>, resource_repo: R) -> Result<Webfinger, ResolverError> {
-        let resource = resource.into();
-        let mut parsed_query = resource.splitn(2, ':');
-        let res_prefix = Prefix::from(parsed_query.next().ok_or(ResolverError::InvalidResource)?);
-        let res = parsed_query.next().ok_or(ResolverError::InvalidResource)?;
-
-        let mut parsed_res = res.splitn(2, '@');
-        let user = parsed_res.next().ok_or(ResolverError::InvalidResource)?;
-        let domain = parsed_res.next().ok_or(ResolverError::InvalidResource)?;
-        if domain == self.instance_domain() {
-            self.find(res_prefix, user.to_string(), resource_repo)
-        } else {
-            Err(ResolverError::WrongDomain)
-        }
-    }
 }
