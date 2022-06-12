@@ -35,7 +35,7 @@ fn test_url_for() {
 
 #[test]
 fn test_resolve() {
-    let mut r = Runtime::new().unwrap();
+    let r = Runtime::new().unwrap();
     let m = mockito::mock("GET", mockito::Matcher::Any)
         .with_body(
             r#"
