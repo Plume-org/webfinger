@@ -17,7 +17,7 @@ async = ["async-trait"]
 [dependencies]
 reqwest = { version = "0.11", features = [ "json" ] }
 serde = { version = "1.0", features = [ "derive" ] }
-async-trait = {version = "*", optional = true}
+async-trait = {version = "0.1.56", optional = true}
 
 [dev-dependencies]
 serde_json = "1.0"
