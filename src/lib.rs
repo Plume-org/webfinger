@@ -68,7 +68,7 @@ pub enum WebfingerError {
 }
 
 /// A prefix for a resource, either `acct:`, `group:` or some custom type.
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Prefix {
     /// `acct:` resource
     Acct,
