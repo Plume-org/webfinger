@@ -6,7 +6,7 @@ use crate::{Prefix, ResolverError, Webfinger};
 /// [`find`](Resolver::find) and [`endpoint`](Resolver::endpoint) functions.
 pub trait Resolver<R> {
     /// Returns the domain name of the current instance.
-    fn instance_domain<'a>(&self) -> &'a str;
+    fn instance_domain(&self) -> &str;
 
     /// Tries to find a resource, `acct`, in the repository `resource_repo`.
     ///

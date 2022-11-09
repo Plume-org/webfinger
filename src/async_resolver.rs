@@ -9,7 +9,7 @@ use async_trait::async_trait;
 pub trait AsyncResolver {
     type Repo: Send;
     /// Returns the domain name of the current instance.
-    async fn instance_domain<'a>(&self) -> &'a str;
+    async fn instance_domain(&self) -> &str;
 
     /// Tries to find a resource, `acct`, in the repository `resource_repo`.
     ///

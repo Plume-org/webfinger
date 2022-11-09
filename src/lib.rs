@@ -17,7 +17,7 @@ pub use crate::async_resolver::*;
 mod tests;
 
 /// WebFinger result that may serialized or deserialized to JSON
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Webfinger {
     /// The subject of this WebFinger result.
     ///
@@ -33,7 +33,7 @@ pub struct Webfinger {
 }
 
 /// Structure to represent a WebFinger link
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Link {
     /// Tells what this link represents
     pub rel: String,
@@ -55,7 +55,7 @@ pub struct Link {
 }
 
 /// An error that occured while fetching a WebFinger resource.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum WebfingerError {
     /// The error came from the HTTP client.
     HttpError,
@@ -68,7 +68,7 @@ pub enum WebfingerError {
 }
 
 /// A prefix for a resource, either `acct:`, `group:` or some custom type.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Prefix {
     /// `acct:` resource
     Acct,
@@ -167,7 +167,7 @@ pub async fn resolve(
 }
 
 /// An error that occured while handling an incoming WebFinger request.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ResolverError {
     /// The requested resource was not correctly formatted
     InvalidResource,
