@@ -11,11 +11,12 @@ license = "GPL-3.0"
 edition = "2018"
 
 [features]
-default = []
+default = ["reqwest/default-tls"]
 async = ["async-trait"]
+rustls = ["reqwest/rustls-tls"]
 
 [dependencies]
-reqwest = { version = "0.11", features = [ "json" ] }
+reqwest = { version = "0.11", default-features = false, features = [ "json" ] }
 serde = { version = "1.0", features = [ "derive" ] }
 async-trait = {version = "0.1.56", optional = true}
 
