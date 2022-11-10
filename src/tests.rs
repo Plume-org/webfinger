@@ -1,7 +1,9 @@
 use super::*;
+#[cfg(feature = "fetch")]
 use tokio::runtime::Runtime;
 
 #[test]
+#[cfg(feature = "fetch")]
 fn test_url_for() {
     assert_eq!(
         url_for(Prefix::Acct, "test@example.org", true),
@@ -34,6 +36,7 @@ fn test_url_for() {
 }
 
 #[test]
+#[cfg(feature = "fetch")]
 fn test_resolve() {
     let r = Runtime::new().unwrap();
     let m = mockito::mock("GET", mockito::Matcher::Any)

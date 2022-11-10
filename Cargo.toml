@@ -11,15 +11,16 @@ license = "GPL-3.0"
 edition = "2021"
 
 [features]
-default = []
+default = ["fetch"]
 async = ["async-trait"]
+fetch = ["dep:reqwest"]
 
 [dependencies]
-reqwest = { version = "0.11", features = [ "json" ] }
-serde = { version = "1.0", features = [ "derive" ] }
-async-trait = {version = "0.1.56", optional = true}
+reqwest = { version = "0.11.12", features = ["json"], optional = true }
+serde = { version = "1.0.147", features = ["derive"] }
+async-trait = { version = "0.1.58", optional = true }
 
 [dev-dependencies]
-serde_json = "1.0"
-mockito = "0.23"
-tokio = { version = "1.19.2", features = [ "full" ] }
+serde_json = "1.0.87"
+mockito = "0.31.0"
+tokio = { version = "1.21.2", features = ["full"] }
