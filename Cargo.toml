@@ -1,14 +1,14 @@
 [package]
 authors = ["Ana Gelez <ana@gelez.xyz>"]
 name = "webfinger"
-version = "0.5.1"
+version = "0.6.0"
 description = "A crate to help you fetch and serve WebFinger resources"
 repository = "https://github.com/Plume-org/webfinger"
 readme = "README.md"
 keywords = ["webfinger", "federation", "decentralization"]
 categories = ["web-programming"]
 license = "GPL-3.0"
-edition = "2018"
+edition = "2021"
 
 [features]
 default = []
