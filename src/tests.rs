@@ -151,7 +151,7 @@ pub struct MyResolver;
 
 // Only one user, represented by a String
 impl Resolver<&'static str> for MyResolver {
-    fn instance_domain<'a>(&self) -> &'a str {
+    fn instance_domain(&self) -> &str {
         "instance.tld"
     }
 
