@@ -161,13 +161,14 @@ impl Resolver<&'static str> for MyResolver {
     fn find(
         &self,
         prefix: Prefix,
-        acct: String,
+        acct: &str,
+        rels: &[impl AsRef<str>],
         resource_repo: &'static str,
     ) -> Result<Webfinger, ResolverError> {
         if acct == resource_repo && prefix == Prefix::Acct {
             Ok(Webfinger {
-                subject: acct.clone(),
-                aliases: vec![acct.clone()],
+                subject: acct.to_owned(),
+                aliases: vec![acct.to_owned()],
                 links: vec![Link {
                     rel: "http://webfinger.net/rel/profile-page".to_string(),
                     mime_type: None,
@@ -220,31 +221,33 @@ impl AsyncResolver for MyAsyncResolver {
 #[test]
 fn test_my_resolver() {
     let resolver = MyResolver;
+    let rels = vec!["http://webfinger.net/rel/profile-page"];
+
     assert!(resolver
-        .endpoint("acct:admin@instance.tld", "admin")
+        .endpoint("acct:admin@instance.tld", &Vec::<String>::new(), "admin")
         .is_ok());
     assert_eq!(
-        resolver.endpoint("acct:test@instance.tld", "admin"),
+        resolver.endpoint("acct:test@instance.tld", &rels, "admin"),
         Err(ResolverError::NotFound)
     );
     assert_eq!(
-        resolver.endpoint("acct:admin@oops.ie", "admin"),
+        resolver.endpoint("acct:admin@oops.ie", &rels, "admin"),
         Err(ResolverError::WrongDomain)
     );
     assert_eq!(
-        resolver.endpoint("admin@instance.tld", "admin"),
+        resolver.endpoint("admin@instance.tld", &rels, "admin"),
         Err(ResolverError::InvalidResource)
     );
     assert_eq!(
-        resolver.endpoint("admin", "admin"),
+        resolver.endpoint("admin", &rels, "admin"),
         Err(ResolverError::InvalidResource)
     );
     assert_eq!(
-        resolver.endpoint("acct:admin", "admin"),
+        resolver.endpoint("acct:admin", &rels, "admin"),
         Err(ResolverError::InvalidResource)
     );
     assert_eq!(
-        resolver.endpoint("group:admin@instance.tld", "admin"),
+        resolver.endpoint("group:admin@instance.tld", &rels, "admin"),
         Err(ResolverError::NotFound)
     );
 }

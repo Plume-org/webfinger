@@ -25,6 +25,11 @@ pub trait AsyncResolver {
     ) -> Result<Webfinger, ResolverError>;
 
     /// Returns a WebFinger result for a requested resource.
+    ///
+    /// # Arguments
+    ///
+    /// * `resource` - The resource to resolve.
+    /// * `resource_repo` - The resource repository.
     async fn endpoint<R: Into<String> + Send>(
         &self,
         resource: R,
