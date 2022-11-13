@@ -9,7 +9,7 @@ use async_trait::async_trait;
 pub trait AsyncResolver {
     type Repo: Send;
     /// Returns the domain name of the current instance.
-    async fn instance_domain<'a>(&self) -> &'a str;
+    async fn instance_domain(&self) -> &str;
 
     /// Tries to find a resource, `acct`, in the repository `resource_repo`.
     ///
@@ -25,6 +25,11 @@ pub trait AsyncResolver {
     ) -> Result<Webfinger, ResolverError>;
 
     /// Returns a WebFinger result for a requested resource.
+    ///
+    /// # Arguments
+    ///
+    /// * `resource` - The resource to resolve.
+    /// * `resource_repo` - The resource repository.
     async fn endpoint<R: Into<String> + Send>(
         &self,
         resource: R,
